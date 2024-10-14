@@ -9,11 +9,48 @@
           </style>    
     </head>
     <body>
-        <h1 style="font-size: 1em; color: blue;">Consulta CEP</h1>
-        <form action="/consulta" method="post">
-            <label style="font-size: 1em;" for="cep">CEP:</label>
-            <input type="text" id="cep" name="cep" required maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-            <button type="submit">Consultar</button>
-        </form>
+        <h1 style="font-size: 1em; color: blue;">Digite o CEP</h1>        
+        <label style="font-size: 1em;" for="cep">CEP:</label>
+        <input type="text" id="cep" name="cep" required maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+        <button onclick="formatarCep()">Consultar</button>   
+        
+        <div id="resultado"></div>
+        <script>
+            function formatarCep() {
+                const cep = document.getElementById('cep').value;
+    
+                // Basic validation (you can add more robust validation)
+                if (cep.length !== 8) {
+                    alert('CEP inválido!');
+                    return;
+                }
+    
+                // Create JSON object
+                const data = { cep: cep }; 
+    
+                // Make the fetch request
+                fetch('/consulta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data) 
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro na requisição');
+                    }
+                    return response.json(); 
+                })
+                .then(data => {
+                    // Handle the response from the server
+                    document.getElementById('resultado').innerText = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    // Handle errors appropriately
+                });
+            }
+        </script>
     </body>
 </html>
