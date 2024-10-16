@@ -15,6 +15,7 @@
         <button onclick="formatarCep()">Consultar</button>   
         
         <div id="resultado"></div>
+        <div id="erro" style="color: red;"></div>
         <script>
             function formatarCep() {
                 const cep = document.getElementById('cep').value;
@@ -38,7 +39,9 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Erro na requisição');
+                        return response.text().then(text => {
+                            throw new Error(text);
+                        });
                     }
                     return response.json(); 
                 })
@@ -49,6 +52,7 @@
                 .catch(error => {
                     console.error('Erro:', error);
                     // Handle errors appropriately
+                    document.getElementById('erro').innerText = 'Erro na consulta: ' + error.message;                    
                 });
             }
         </script>

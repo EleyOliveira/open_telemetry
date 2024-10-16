@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"regexp"
 )
 
 type CepRequest struct {
@@ -35,16 +36,38 @@ func consultaCep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log the raw body for debugging
-	log.Println("Raw Request Body:", string(body))
-
 	err = json.Unmarshal(body, &cep)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	valido, err := ValidarCep(cep.Cep)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Ocorreu um erro ao validar o CEP: %s\n", err.Error())
+		return
+	}
+
+	if !valido {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprint(w, "invalid zipcode")
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cep)
+}
+
+func ValidarCep(cep string) (bool, error) {
+
+	valido, err := regexp.MatchString(`^\d{8}$`, cep)
+
+	if err != nil {
+		return false, err
+	}
+
+	return valido, nil
 }
