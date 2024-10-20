@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"encoding/json"
@@ -12,19 +12,11 @@ type CepRequest struct {
 	Cep string `json:"cep"`
 }
 
-func main() {
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
-	})
-
-	http.HandleFunc("/consulta", consultaCep)
-	println("rodando na porta 8080")
-	http.ListenAndServe(":8080", nil)
-
+func Index(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "../static/index.html")
 }
 
-func consultaCep(w http.ResponseWriter, r *http.Request) {
+func ConsultaCep(w http.ResponseWriter, r *http.Request) {
 
 	//cria um limite para evitar ler um valor de requisição muito grande
 	bodyReader := io.LimitReader(r.Body, 1048576)
@@ -56,9 +48,16 @@ func consultaCep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cepResponse, err := ValidarCep(cep.Cep)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Ocorreu um erro ao consultar o CEP: %s\n", err.Error())
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cep)
+	json.NewEncoder(w).Encode(cepResponse)
 }
 
 func ValidarCep(cep string) (bool, error) {
