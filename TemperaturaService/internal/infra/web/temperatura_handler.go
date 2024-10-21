@@ -1,9 +1,11 @@
 package web
 
 import (
+	"curso/labs/open_telemetry/TemperaturaService/internal/infra/entity"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"strconv"
 )
 
 func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
@@ -25,16 +27,28 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Temperatura: %d°C", temperatura)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(temperatura)
 }
 
-func obterTemperatura(cep string) (int, error) {
-	// Lógica para consultar a temperatura com base no CEP
-	// Neste exemplo, estamos simulando a temperatura com base no CEP
-	// Em um cenário real, você consultaria um banco de dados ou API externa
-	temperatura, err := strconv.Atoi(cep)
+func obterTemperatura(cep string) (*entity.Temperature, error) {
+	resp, err := http.Get(fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return temperatura, nil
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var temperatura entity.Temperature
+	err = json.Unmarshal(body, &temperatura)
+	if err != nil {
+		return nil, err
+	}
+
+	return &temperatura, nil
+
 }

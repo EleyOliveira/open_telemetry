@@ -45,7 +45,7 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8081/temperatura?cep=%s", cep.Cep))
+	resp, err := http.Get(fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Ocorreu um erro ao consultar a temperatura: %s\n", err.Error())
@@ -53,9 +53,30 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Ocorreu um erro ao ler a resposta: %s\n", err.Error())
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		w.WriteHeader(resp.StatusCode)
+		fmt.Fprintf(w, "Erro ao consultar a temperatura: %s\n", string(body))
+		return
+	}
+
+	var temperatura entity.Temperature
+	err = json.Unmarshal(body, &temperatura)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Ocorreu um erro ao decodificar a temperatura: %s\n", err.Error())
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(valido)
+	json.NewEncoder(w).Encode(temperatura)
 }
 
 func ValidarCep(cep string) (bool, error) {
