@@ -8,7 +8,7 @@ import (
 func main() {
 
 	http.HandleFunc("/", web.Index)
-	http.HandleFunc("/consulta", web.ConsultaCep)
+	http.HandleFunc("/consulta", web.ConsultaTemperatura)
 
 	println("rodando na porta 8080")
 

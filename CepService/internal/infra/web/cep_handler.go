@@ -13,7 +13,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../static/index.html")
 }
 
-func ConsultaCep(w http.ResponseWriter, r *http.Request) {
+func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 
 	//cria um limite para evitar ler um valor de requisição muito grande
 	bodyReader := io.LimitReader(r.Body, 1048576)
@@ -45,16 +45,17 @@ func ConsultaCep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cepResponse, err := ValidarCep(cep.Cep)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8081/temperatura?cep=%s", cep.Cep))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Ocorreu um erro ao consultar o CEP: %s\n", err.Error())
+		fmt.Fprintf(w, "Ocorreu um erro ao consultar a temperatura: %s\n", err.Error())
 		return
 	}
+	defer resp.Body.Close()
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cepResponse)
+	json.NewEncoder(w).Encode(valido)
 }
 
 func ValidarCep(cep string) (bool, error) {
