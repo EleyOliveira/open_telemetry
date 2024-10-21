@@ -1,16 +1,13 @@
 package web
 
 import (
+	"curso/labs/open_telemetry/CepService/internal/infra/entity"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 )
-
-type CepRequest struct {
-	Cep string `json:"cep"`
-}
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../static/index.html")
@@ -21,7 +18,7 @@ func ConsultaCep(w http.ResponseWriter, r *http.Request) {
 	//cria um limite para evitar ler um valor de requisição muito grande
 	bodyReader := io.LimitReader(r.Body, 1048576)
 
-	var cep CepRequest
+	var cep entity.Cep
 	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
