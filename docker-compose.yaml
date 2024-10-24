@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - .otel/otel-collector-config.yml:/etc/otel-collector-config.yml
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"

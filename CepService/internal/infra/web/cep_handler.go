@@ -1,19 +1,44 @@
 package web
 
 import (
-	"curso/labs/open_telemetry/CepService/internal/infra/entity"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"opentelemetry_zipkin/CepService/internal/infra/entity"
 	"regexp"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
+
+	// Obtem o tracer global configurado no arquivo main.go
+	tr := otel.Tracer("CepService")
+
+	//Inicia um novo span. A chamada para EndSpan deve ser a última ação da função
+	_, span := tr.Start(r.Context(), "Index")
+	defer span.End()
+
 	http.ServeFile(w, r, "../static/index.html")
 }
 
 func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
+
+	tr := otel.Tracer("CepService")
+	ctx, span := tr.Start(r.Context(), "ConsultaTemperatura")
+	defer span.End()
+
+	span.SetAttributes(attribute.String(
+		"http.method",
+		r.Method,
+	))
+
+	span.SetAttributes(attribute.String(
+		"http.url",
+		r.URL.String(),
+	))
 
 	//cria um limite para evitar ler um valor de requisição muito grande
 	bodyReader := io.LimitReader(r.Body, 1048576)
@@ -45,7 +70,16 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep))
+	//resp, err := http.Get(fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep), nil)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Ocorreu um erro ao preparar a requisição: %s\n", err.Error())
+		return
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Ocorreu um erro ao consultar a temperatura: %s\n", err.Error())
