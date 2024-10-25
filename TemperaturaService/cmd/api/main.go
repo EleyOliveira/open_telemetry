@@ -1,9 +1,9 @@
 package main
 
 import (
-	"curso/labs/open_telemetry/TemperaturaService/internal/infra/web"
 	"fmt"
 	"net/http"
+	"opentelemetry_zipkin/TemperaturaService/internal/infra/web"
 )
 
 func main() {
