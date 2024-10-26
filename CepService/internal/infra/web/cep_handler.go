@@ -10,6 +10,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -70,14 +71,16 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//resp, err := http.Get(fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://temperatura-l5x7giwwma-uc.a.run.app/cep?cep=%s", cep.Cep), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://localhost:8081/temperatura?cep=%s", cep.Cep), nil)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Ocorreu um erro ao preparar a requisição: %s\n", err.Error())
 		return
 	}
+
+	carrier := propagation.HeaderCarrier(req.Header)
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

@@ -1,12 +1,16 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type ViaCEP struct {
@@ -31,6 +35,15 @@ type Temperature struct {
 }
 
 func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+	carrier := propagation.HeaderCarrier(r.Header)
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
+
+	tr := otel.Tracer("TemperaturaService")
+	ctx, span := tr.Start(ctx, "ConsultaTemperatura")
+	defer span.End()
+
 	cep := r.URL.Query().Get("cep")
 	if cep == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -38,14 +51,14 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, codigo, err := GetCep(cep)
+	data, codigo, err := GetCep(ctx, cep)
 	if err != nil {
 		w.WriteHeader(codigo)
 		fmt.Fprintf(w, "ocorreu o erro: %s", err.Error())
 		return
 	}
 
-	dataTemperature, codigo, err := GetTemperature(data.Localidade)
+	dataTemperature, codigo, err := GetTemperature(ctx, data.Localidade)
 	if err != nil {
 		w.WriteHeader(codigo)
 		fmt.Fprintf(w, "ocorreu o erro: %s", err.Error())
@@ -57,7 +70,11 @@ func ConsultaTemperatura(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dataTemperature)
 }
 
-func GetCep(cep string) (*ViaCEP, int, error) {
+func GetCep(ctx context.Context, cep string) (*ViaCEP, int, error) {
+
+	tr := otel.Tracer("TemperaturaService")
+	_, span := tr.Start(ctx, "GetCep")
+	defer span.End()
 
 	req, err := http.Get("https://viacep.com.br/ws/" + cep + "/json/")
 	if err != nil {
@@ -83,7 +100,11 @@ func GetCep(cep string) (*ViaCEP, int, error) {
 	return &data, http.StatusOK, nil
 }
 
-func GetTemperature(localidade string) (*Temperature, int, error) {
+func GetTemperature(ctx context.Context, localidade string) (*Temperature, int, error) {
+
+	tr := otel.Tracer("TemperaturaService")
+	_, span := tr.Start(ctx, "GetTemperature")
+	defer span.End()
 
 	apiKey := "90afc375b7bf4a7cb18171824242909"
 	params := url.Values{}
